@@ -60,31 +60,21 @@ class VoipDatagramProtocol(SipDatagramProtocol):
         # Find free RTP/RTCP ports
         rtp_ip = ""
         rtp_port = 0
+        rtp_min_port = 50600
+        rtp_max_port = 50800
 
-        while True:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.setblocking(False)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)       
+        sock.setblocking(False)
 
-            # Bind to a random UDP port
-            sock.bind(("", 0))
-            rtp_ip, rtp_port = sock.getsockname()
-
-            # Close socket to free port for re-use
-            sock.close()
-
-            # Check that the next port up is available for RTCP
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        rtp_cur_port = rtp_min_port
+        while rtp_cur_port < rtp_max_port:
             try:
-                sock.bind(("", rtp_port + 1))
-
-                # Will be opened again below
+                sock.bind(("", rtp_cur_port))
+                rtp_ip, rtp_port = sock.getsockname()
                 sock.close()
-
-                # Found our ports
                 break
             except OSError:
-                # RTCP port is taken
-                pass
+                rtp_cur_port += 1
 
         _LOGGER.debug(
             "Starting RTP server on ip=%s, rtp_port=%s, rtcp_port=%s",
